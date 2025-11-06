@@ -9,18 +9,16 @@ contents_bp = Blueprint('contents', __name__)
 
 def process_row(row):
     """
-    Process a database row to ensure the 'meta' field is a dictionary.
-    psycopg2 sometimes returns a string for JSONB fields, so we ensure it's a dict.
+    DB에서 읽어온 row를 처리합니다.
+    meta 필드가 None이면 빈 dict로 보장합니다.
     """
     row_dict = dict(row)
-    if isinstance(row_dict.get('meta'), str):
-        try:
-            row_dict['meta'] = json.loads(row_dict['meta'])
-        except (json.JSONDecodeError, TypeError):
-            # If parsing fails, default to an empty dict
-            row_dict['meta'] = {}
-    elif row_dict.get('meta') is None:
+    if row_dict.get('meta') is None:
         row_dict['meta'] = {}
+
+    # psycopg2가 JSONB를 dict로 자동 변환하므로,
+    # isinstance(..., str) 및 json.loads()가 더 이상 필요하지 않습니다.
+
     return row_dict
 
 @contents_bp.route('/api/contents/search', methods=['GET'])
