@@ -8,13 +8,17 @@ import os
 def get_db():
     """Application Context 내에서 유일한 DB 연결을 가져옵니다."""
     if 'db' not in g:
-        g.db = psycopg2.connect(
-            dbname=os.environ.get('DB_NAME'),
-            user=os.environ.get('DB_USER'),
-            password=os.environ.get('DB_PASSWORD'),
-            host=os.environ.get('DB_HOST'),
-            port=os.environ.get('DB_PORT')
-        )
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url:
+            g.db = psycopg2.connect(database_url)
+        else:
+            g.db = psycopg2.connect(
+                dbname=os.environ.get('DB_NAME'),
+                user=os.environ.get('DB_USER'),
+                password=os.environ.get('DB_PASSWORD'),
+                host=os.environ.get('DB_HOST'),
+                port=os.environ.get('DB_PORT')
+            )
     return g.db
 
 def get_cursor(db):
