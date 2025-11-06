@@ -7,6 +7,22 @@ import json
 
 contents_bp = Blueprint('contents', __name__)
 
+def process_row(row):
+    """
+    Process a database row to ensure the 'meta' field is a dictionary.
+    psycopg2 sometimes returns a string for JSONB fields, so we ensure it's a dict.
+    """
+    row_dict = dict(row)
+    if isinstance(row_dict.get('meta'), str):
+        try:
+            row_dict['meta'] = json.loads(row_dict['meta'])
+        except (json.JSONDecodeError, TypeError):
+            # If parsing fails, default to an empty dict
+            row_dict['meta'] = {}
+    elif row_dict.get('meta') is None:
+        row_dict['meta'] = {}
+    return row_dict
+
 @contents_bp.route('/api/contents/search', methods=['GET'])
 def search_contents():
     """전체 DB에서 콘텐츠 제목을 검색하여 결과를 반환합니다."""
@@ -33,7 +49,7 @@ def search_contents():
         (search_pattern, content_type)
     )
 
-    results = [dict(row) for row in cursor.fetchall()]
+    results = [process_row(row) for row in cursor.fetchall()]
     cursor.close()
     return jsonify(results)
 
@@ -51,7 +67,7 @@ def get_ongoing_contents():
         (content_type,)
     )
 
-    all_contents = [dict(row) for row in cursor.fetchall()]
+    all_contents = [process_row(row) for row in cursor.fetchall()]
     cursor.close()
 
     grouped_by_day = { 'mon': [], 'tue': [], 'wed': [], 'thu': [], 'fri': [], 'sat': [], 'sun': [], 'daily': [] }
@@ -82,7 +98,7 @@ def get_hiatus_contents():
         (content_type, per_page, offset)
     )
 
-    results = [dict(row) for row in cursor.fetchall()]
+    results = [process_row(row) for row in cursor.fetchall()]
     cursor.close()
 
     return jsonify({
@@ -115,7 +131,7 @@ def get_completed_contents():
         (content_type, per_page, offset)
     )
 
-    results = [dict(row) for row in cursor.fetchall()]
+    results = [process_row(row) for row in cursor.fetchall()]
     cursor.close()
 
     return jsonify({
