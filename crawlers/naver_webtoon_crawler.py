@@ -109,11 +109,12 @@ class NaverWebtoonCrawler(ContentCrawler):
                 'weekday': webtoon_data.get('normalized_weekday', webtoon_data.get('weekday'))
             }
 
-            record = ('webtoon', webtoon_data['titleName'], status, json.dumps(meta_data), content_id, self.source_name)
             if content_id in db_existing_ids:
+                record = ('webtoon', webtoon_data['titleName'], status, json.dumps(meta_data), content_id, self.source_name)
                 updates.append(record)
             else:
-                inserts.append((content_id, self.source_name) + record)
+                record = (content_id, self.source_name, 'webtoon', webtoon_data['titleName'], status, json.dumps(meta_data))
+                inserts.append(record)
 
         if updates:
             cursor.executemany("UPDATE contents SET content_type=%s, title=%s, status=%s, meta=%s WHERE content_id=%s AND source=%s", updates)
