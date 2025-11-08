@@ -6,6 +6,7 @@ import traceback
 import asyncio
 import aiohttp
 import json
+import sys
 from tenacity import retry, stop_after_attempt, wait_exponential
 from dotenv import load_dotenv
 
@@ -154,13 +155,25 @@ class NaverWebtoonCrawler(ContentCrawler):
         if updates:
             cursor.executemany("UPDATE contents SET content_type=%s, title=%s, status=%s, meta=%s WHERE content_id=%s AND source=%s", updates)
             print(f"{len(updates)}개 웹툰 정보 업데이트 완료.")
+
         if inserts:
-            cursor.executemany("INSERT INTO contents (content_id, source, content_type, title, status, meta) VALUES (%s, %s, %s, %s, %s, %s)", inserts)
-            print(f"{len(inserts)}개 신규 웹툰 DB 추가 완료.")
+            # === 🚨 [버그 수정] INSERT 리스트의 잠재적 중복 제거 ===
+            seen_keys = set()
+            unique_inserts = []
+            for record in inserts:
+                key = (record[0], record[1]) # (content_id, source)
+                if key not in seen_keys:
+                    unique_inserts.append(record)
+                    seen_keys.add(key)
+            # =======================================================
+
+            cursor.executemany("INSERT INTO contents (content_id, source, content_type, title, status, meta) VALUES (%s, %s, %s, %s, %s, %s)", unique_inserts) # 👈 unique_inserts 사용
+            print(f"{len(unique_inserts)}개 신규 웹툰 DB 추가 완료. (중복 {len(inserts) - len(unique_inserts)}개 제거)")
+
         conn.commit()
         cursor.close()
         print("DB 동기화 완료.")
-        return len(inserts)
+        return len(unique_inserts)
 
     async def run_daily_check(self, conn):
         print("LOG: run_daily_check started.")
@@ -214,13 +227,21 @@ if __name__ == '__main__':
         print(f"치명적 오류 발생: {e}")
         report['status'] = '실패'
         report['error_message'] = traceback.format_exc()
+        try:
+            print("LOG: [실패] 관리자 보고서 발송 시도...")
+            send_admin_report(report)
+        except Exception as report_e:
+            print(f"LOG: [실패] 관리자 보고서 발송조차 실패함: {report_e}")
+
+        sys.exit(1)
     finally:
         if db_conn:
             print("LOG: Closing database connection.")
             db_conn.close()
         report['duration'] = time.time() - start_time
-        print("LOG: Sending admin report.")
-        send_admin_report(report)
+        if report['status'] == '성공':
+            print("LOG: Sending admin report.")
+            send_admin_report(report)
         print("==========================================")
         print("  CRAWLER SCRIPT FINISHED")
         print("==========================================")
