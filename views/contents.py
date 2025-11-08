@@ -70,9 +70,10 @@ def get_ongoing_contents():
 
     grouped_by_day = { 'mon': [], 'tue': [], 'wed': [], 'thu': [], 'fri': [], 'sat': [], 'sun': [], 'daily': [] }
     for content in all_contents:
-        day_eng = content.get('meta', {}).get('weekday')
-        if day_eng in grouped_by_day:
-            grouped_by_day[day_eng].append(content)
+        day_list = content.get('meta', {}).get('weekdays', [])
+        for day_eng in day_list:
+            if day_eng in grouped_by_day:
+                grouped_by_day[day_eng].append(content)
 
     return jsonify(grouped_by_day)
 

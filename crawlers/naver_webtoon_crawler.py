@@ -99,12 +99,20 @@ class NaverWebtoonCrawler(ContentCrawler):
                 continue
 
             for webtoon in result.values():
-                webtoon['normalized_weekday'] = WEEKDAYS[day_key]
+                titleId = webtoon['titleId']
 
-                naver_ongoing_today[webtoon['titleId']] = webtoon
+                if titleId not in naver_ongoing_today:
+                    naver_ongoing_today[titleId] = webtoon
+                    naver_ongoing_today[titleId]['normalized_weekdays'] = set()
+
+                naver_ongoing_today[titleId]['normalized_weekdays'].add(WEEKDAYS[day_key])
 
                 if webtoon.get('rest', False):
-                    naver_hiatus_today[webtoon['titleId']] = webtoon
+                    naver_hiatus_today[titleId] = webtoon
+
+        print("  -> 수집된 요일 정보를 list로 변환합니다...")
+        for webtoon in naver_ongoing_today.values():
+            webtoon['normalized_weekdays'] = list(webtoon['normalized_weekdays'])
 
         for tid, data in finished_candidates.items():
             if tid not in naver_ongoing_today and tid not in naver_hiatus_today:
@@ -133,7 +141,7 @@ class NaverWebtoonCrawler(ContentCrawler):
 
             meta_data = {
                 'author': webtoon_data.get('author'),
-                'weekday': webtoon_data.get('normalized_weekday', webtoon_data.get('weekday'))
+                'weekdays': webtoon_data.get('normalized_weekdays', [])
             }
 
             if content_id in db_existing_ids:
