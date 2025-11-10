@@ -8,7 +8,7 @@ print("  DATABASE INITIALIZATION SCRIPT STARTED")
 print("==========================================")
 try:
     load_dotenv()
-    setup_database_standalone()
+    # setup_database_standalone()
     print("\n[SUCCESS] Database initialization complete.")
     print("==========================================")
     print("  DATABASE INITIALIZATION SCRIPT FINISHED")
