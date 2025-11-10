@@ -66,17 +66,3 @@ def send_completion_notifications(cursor, newly_completed_ids, all_content_today
         print(f"❌ 이메일 서버 연결 또는 발송 중 심각한 오류 발생: {e}")
     return completed_details, total_notified_users
 
-def send_admin_report(report_data):
-    admin_email = os.getenv('ADMIN_EMAIL')
-    if not admin_email:
-        print("경고: 보고서를 수신할 ADMIN_EMAIL 환경 변수가 설정되지 않았습니다.")
-        return
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if report_data['status'] == '성공':
-        subject = f"✅ [성공] 웹툰 알리미 일일 보고서 ({now})"
-        body = f"안녕하세요, 관리자님.\n웹툰 알리미 자동화 작업이 성공적으로 완료되었습니다.\n\n- 작업 시간: {now}\n- 실행 시간: {report_data['duration']:.2f}초\n- 신규 DB 등록 웹툰: {report_data.get('new_webtoons', 0)}개\n- 총 알림 발송 인원: {report_data.get('total_notified', 0)}명\n\n[금일 완결 처리 및 알림 발송 내역]\n"
-        body += "\n".join(report_data['completed_details']) if report_data['completed_details'] else "없음"
-    else:
-        subject = f"❌ [실패] 웹툰 알리미 자동화 작업 오류 보고서 ({now})"
-        body = f"안녕하세요, 관리자님.\n웹툰 알리미 자동화 작업 중 오류가 발생했습니다.\n\n- 작업 시간: {now}\n- 오류 내용:\n{report_data['error_message']}\n\nGitHub Actions 로그를 확인해주세요."
-    send_email(admin_email, subject, body)
