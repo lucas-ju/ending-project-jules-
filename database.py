@@ -91,6 +91,19 @@ def setup_database_standalone():
         )""")
         print("LOG: [DB Setup] 'subscriptions' table created or already exists.")
 
+        # === 🚨 [신규] 통합 보고서 저장을 위한 테이블 생성 ===
+        print("LOG: [DB Setup] Creating 'daily_crawler_reports' table...")
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_crawler_reports (
+            id SERIAL PRIMARY KEY,
+            crawler_name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            report_data JSONB NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )""")
+        print("LOG: [DB Setup] 'daily_crawler_reports' table created or already exists.")
+        # ================================================
+
         print("LOG: [DB Setup] Enabling 'pg_trgm' extension...")
         cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
 

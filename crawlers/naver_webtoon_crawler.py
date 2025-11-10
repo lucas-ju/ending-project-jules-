@@ -11,7 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from dotenv import load_dotenv
 
 import config
-from services.notification_service import send_completion_notifications, send_admin_report
+from services.notification_service import send_completion_notifications
 from .base_crawler import ContentCrawler
 from database import get_cursor, create_standalone_connection, setup_database_standalone
 
@@ -208,6 +208,8 @@ if __name__ == '__main__':
     start_time = time.time()
     report = {'status': '성공'}
     db_conn = None
+    CRAWLER_DISPLAY_NAME = "네이버 웹툰"
+
     try:
         print("LOG: Calling setup_database_standalone()...")
         setup_database_standalone()
@@ -225,25 +227,45 @@ if __name__ == '__main__':
         print("LOG: asyncio.run(crawler.run_daily_check()) finished.")
 
         report.update({'new_webtoons': new_contents, 'completed_details': completed_details, 'total_notified': total_notified})
+
     except Exception as e:
         print(f"치명적 오류 발생: {e}")
         report['status'] = '실패'
         report['error_message'] = traceback.format_exc()
-        try:
-            print("LOG: [실패] 관리자 보고서 발송 시도...")
-            send_admin_report(report)
-        except Exception as report_e:
-            print(f"LOG: [실패] 관리자 보고서 발송조차 실패함: {report_e}")
 
-        sys.exit(1)
     finally:
         if db_conn:
             print("LOG: Closing database connection.")
             db_conn.close()
+
         report['duration'] = time.time() - start_time
-        if report['status'] == '성공':
-            print("LOG: Sending admin report.")
-            send_admin_report(report)
+
+        # === 🚨 [리팩토링] 메일 발송 대신 DB에 보고서 저장 ===
+        report_conn = None
+        try:
+            report_conn = create_standalone_connection()
+            report_cursor = get_cursor(report_conn)
+            print(f"LOG: Saving report to 'daily_crawler_reports' table...")
+            report_cursor.execute(
+                """
+                INSERT INTO daily_crawler_reports (crawler_name, status, report_data)
+                VALUES (%s, %s, %s)
+                """,
+                (CRAWLER_DISPLAY_NAME, report['status'], json.dumps(report))
+            )
+            report_conn.commit()
+            report_cursor.close()
+            print("LOG: Report saved successfully.")
+        except Exception as report_e:
+            print(f"FATAL: [실패] 보고서 DB 저장 실패: {report_e}", file=sys.stderr)
+        finally:
+            if report_conn:
+                report_conn.close()
+        # =================================================
+
         print("==========================================")
         print("  CRAWLER SCRIPT FINISHED")
         print("==========================================")
+
+        if report['status'] == '실패':
+            sys.exit(1)
