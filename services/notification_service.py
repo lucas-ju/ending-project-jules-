@@ -4,6 +4,7 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
+import config
 
 def send_email(recipient_email, subject, body, smtp_server=None):
     sender_email = os.getenv('EMAIL_ADDRESS')
@@ -17,7 +18,7 @@ def send_email(recipient_email, subject, body, smtp_server=None):
     msg['To'] = recipient_email
     try:
         if smtp_server is None:
-            with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            with smtplib.SMTP(config.SMTP_SERVER, config.SMTP_PORT) as server:
                 server.starttls()
                 server.login(sender_email, sender_password)
                 server.sendmail(sender_email, recipient_email, msg.as_string())
@@ -40,7 +41,7 @@ def send_completion_notifications(cursor, newly_completed_ids, all_content_today
         print("오류: 이메일 발송을 위한 환경 변수가 설정되지 않았습니다.")
         return [], 0
     try:
-        with smtplib.SMTP('smtp.gmail.com', 587) as smtp_server:
+        with smtplib.SMTP(config.SMTP_SERVER, config.SMTP_PORT) as smtp_server:
             smtp_server.starttls()
             smtp_server.login(sender_email, sender_password)
             for content_id in newly_completed_ids:
