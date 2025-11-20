@@ -8,15 +8,12 @@ from dotenv import load_dotenv
 
 from database import create_standalone_connection, get_cursor
 from crawlers.naver_webtoon_crawler import NaverWebtoonCrawler
-from crawlers.kakaopage_crawler import KakaopageCrawler
 
 # ----------------------------------------------------------------------
 # [중요] 실행할 모든 크롤러를 이곳에 등록합니다.
 # ----------------------------------------------------------------------
 ALL_CRAWLERS = [
     NaverWebtoonCrawler,
-    # KakaopageCrawler, # 👈 봇 감지 문제로 임시 비활성화
-    # (향후 새로운 크롤러 클래스를 여기에 추가)
 ]
 # ----------------------------------------------------------------------
 
